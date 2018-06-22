@@ -11,12 +11,14 @@ import json
 import subprocess
 import collections
 import traceback
+import time
 from PIL import Image, ImageTk
+
 
 def extractExtensions(answerset):
   #print(repr(answer_set))
   field_pattern = re.compile(r'(\w+)\((\d+)\)')
-  tuple_pattern = re.compile(r'(\w+)\((.*,.*)\)')#not quite working yet
+  tuple_pattern = re.compile(r'(\w+)\((.*,.*)\)')
   extensions = collections.defaultdict(lambda: set())
   for l in answerset:
     try:
@@ -107,9 +109,30 @@ class Window:
     self.root.bind("<Right>", lambda x:self.go(+1))
     self.root.bind("<Left>", lambda x:self.go(-1))
     self.root.bind("q", exit) # TODO more graceful quitting
-
     self.items = []
+    #self.root.after(0, self.animation)
     self.updateView()
+
+  def animation(self):
+   track = 0
+   while True:
+       x = 5
+       y = 0
+       if track == 0:
+          for i in range(0,51):
+               time.sleep(0.025)
+               self.canvas.move(self.items[17], x, y)
+               self.canvas.move(self.items[21], x, y)
+               self.canvas.update()
+          track = 1
+       else:
+          for i in range(0,51):
+               time.sleep(0.025)
+               self.canvas.move(self.items[17], -x, y)
+               self.canvas.move(self.items[21], -x, y)
+               self.canvas.update()
+          track = 0
+       print (track)
 
   def select(self,which):
     self.selected = int(which)
@@ -154,17 +177,38 @@ class Window:
     for a in ext['obstacleAt']:#static
       x=a.split(',')
       self.items.append( self.canvas.create_rectangle( * fieldRect(x[0],x[1]), fill=WALL_FILL) )
-
-    for a in ext['robotAt']:#dynamic
-        x=a.split(',')
+    counter=0
+    tmp=sorted(list(ext['robotAt']), key=lambda x: int(x[-1]))
+    tmp1=sorted(list(ext['target']), key=lambda x: int(x[-1]))
+    timelim=int(tmp[-1].split(',')[-1])
+    for i in range(0,timelim+1):
+        x=tmp[i].split(',')
         c,d = int(x[0])+1, int(x[1])+1
-        offset=SIZE
-        self.items.append( self.canvas.create_image( c*SIZE, d*SIZE,image=self.robo) )
 
-    for a in ext['target']:#dynamic
-      x=a.split(',')
-      self.items.append( self.canvas.create_oval( *fieldRect(x[0],x[1],10), fill=TARGET_FILL) )
+        if(i!=timelim):
+            x1=tmp1[i].split(',')
+            c1,d1 = int(x1[0])+1, int(x1[1])+1
+        else:
+            x1=tmp1[i-1].split(',')
+            c1,d1 = int(x1[2])+1, int(x1[3])+1
 
+
+        counter+=1
+        if counter==1:
+            self.rob=self.canvas.create_image(c*SIZE, d*SIZE,image=self.robo)
+            self.items.append(self.rob)
+            self.tar=self.canvas.create_oval(*fieldRect(x1[0],x1[1],10), fill=TARGET_FILL)
+            self.items.append(self.tar)
+            self.canvas.update()
+        else:
+            time.sleep(1)
+            self.canvas.move(self.rob, (c-lastx)*SIZE, (d-lasty)*SIZE)
+            self.canvas.move(self.tar, (c1-lastx1)*SIZE, (d1-lasty1)*SIZE)
+            self.canvas.update()
+        lastx=c
+        lasty=d
+        lastx1=c1
+        lasty1=d1
 
 def display_tk(answersets):
   w = Window(answersets)
