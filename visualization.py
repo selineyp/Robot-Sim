@@ -11,6 +11,7 @@ import json
 import subprocess
 import collections
 import traceback
+from PIL import Image, ImageTk
 
 def extractExtensions(answerset):
   #print(repr(answer_set))
@@ -80,33 +81,11 @@ def render_svg(literals,size=20):
             for y in answer_set['column']:
                 x = int(x)
                 y = int(y)
-                svg.rect(x=str(10*x - 5),
-                        y=str(10*y - 5),
+                svg.rect(x=str(10*x -5),
+                        y=str(10*y-5),
                         width=str(10),
                         height=str(10),
                         style="stroke: black; stroke-width: 1px; fill:white;")
-        for (x, y) in answer_set['wall']:
-            x = int(x)
-            y = int(y)
-            svg.rect(x=str(10*x - 5),
-                     y=str(10*y - 5),
-                     width=str(10),
-                     height=str(10),
-                     style="stroke: black; stroke-width: 1px; fill:black;")
-        for (x, y) in answer_set['exit']:
-            x = int(x)
-            y = int(y)
-            svg.circle(cx=str(10*x), cy=str(10*y), r=str(3), style="stroke: red; fill:red; ")
-        for (x, y) in answer_set['mark']:
-            x = int(x)
-            y = int(y)
-            svg.circle(cx=str(10*x), cy=str(10*y), r=str(2), style="stroke: blue; fill:blue; ")
-        for (x, y, text) in answer_set['text']:
-            x = int(x)
-            y = int(y)
-            text = str(text)
-            print(("SVG %d %d %s" % (x, y, text)))
-            svg.text(text, x=str(10*x-3), y=str(10*y+3), style="stroke: green; font-size: 9px; ")
 
     #return IPython.display.SVG(data=str(svg))
     with file("out.svg","w+") as f:
@@ -122,9 +101,9 @@ class Window:
     self.main = tk.Frame(self.root)
     self.main.pack(fill=tk.BOTH, expand=1)
     self.canvas = tk.Canvas(self.main, bg="white")
-    self.canvas.pack(fill=tk.BOTH, expand=1, side=tk.TOP)
+    self.canvas.pack(fill=tk.BOTH, expand=1, side=tk.BOTTOM)
     self.selector = tk.Scale(self.main, orient=tk.HORIZONTAL, showvalue=0, command=self.select)
-    self.selector.pack(side=tk.BOTTOM,fill=tk.X)
+    self.selector.pack(side=tk.RIGHT,fill=tk.X)
     self.root.bind("<Right>", lambda x:self.go(+1))
     self.root.bind("<Left>", lambda x:self.go(-1))
     self.root.bind("q", exit) # TODO more graceful quitting
@@ -143,7 +122,7 @@ class Window:
   def updateView(self):
     self.selector.config(from_=0, to=len(self.answersets)-1)
 
-    SIZE=30
+    SIZE=40
     FIELD_FILL='#FFF'
     WALL_FILL='#444'
     MARK_FILL='#A77'
@@ -152,7 +131,7 @@ class Window:
     TARGET_FILL='#ccccff'
 
     def fieldRect(x,y,offset=SIZE):
-      x, y = int(x), int(y)
+      x, y = int(x)+1, int(y)+1
       return (x*SIZE-offset/2, y*SIZE-offset/2, x*SIZE+offset/2, y*SIZE+offset/2)
 
     # delete old items
@@ -165,21 +144,24 @@ class Window:
     #print repr(ext)
     maxx = max([x for x in ext['row']])
     maxy = max([x for x in ext['column']])
-    self.root.geometry("{}x{}+0+0".format((maxx+1)*SIZE, (maxy+2)*SIZE))
+    self.root.geometry("{}x{}+1+1".format((maxx+2)*SIZE, (maxy+2)*SIZE))
     for x in ext['row']:
         for y in ext['column']:
             self.items.append( self.canvas.create_rectangle( * fieldRect(x,y), fill=FIELD_FILL) )
 
-
-    for a in ext['obstacleAt']:
+    self.img = Image.open("smallrobo.gif")
+    self.robo = ImageTk.PhotoImage(self.img)
+    for a in ext['obstacleAt']:#static
       x=a.split(',')
       self.items.append( self.canvas.create_rectangle( * fieldRect(x[0],x[1]), fill=WALL_FILL) )
 
-    for a in ext['robotAt']:
+    for a in ext['robotAt']:#dynamic
         x=a.split(',')
-        self.items.append( self.canvas.create_rectangle( * fieldRect(x[0],x[1]), fill=ROBOT_FILL) )
+        c,d = int(x[0])+1, int(x[1])+1
+        offset=SIZE
+        self.items.append( self.canvas.create_image( c*SIZE, d*SIZE,image=self.robo) )
 
-    for a in ext['target']:
+    for a in ext['target']:#dynamic
       x=a.split(',')
       self.items.append( self.canvas.create_oval( *fieldRect(x[0],x[1],10), fill=TARGET_FILL) )
 
