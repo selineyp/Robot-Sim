@@ -241,8 +241,9 @@ class Window:
                 self.canvas.coords(self.arrow,a,b,a1,b1,a2,b2)
             self.canvas.update()
 
-        if i < timelim2-obscounter:
+        if i < len(obstacles):
             for x in obstacles:
+                obstacles.remove(x)
                 self.canvas.delete(x)
 
         lastx=c
