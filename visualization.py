@@ -113,26 +113,6 @@ class Window:
     #self.root.after(0, self.animation)
     self.updateView()
 
-  def animation(self):
-   track = 0
-   while True:
-       x = 5
-       y = 0
-       if track == 0:
-          for i in range(0,51):
-               time.sleep(0.025)
-               self.canvas.move(self.items[17], x, y)
-               self.canvas.move(self.items[21], x, y)
-               self.canvas.update()
-          track = 1
-       else:
-          for i in range(0,51):
-               time.sleep(0.025)
-               self.canvas.move(self.items[17], -x, y)
-               self.canvas.move(self.items[21], -x, y)
-               self.canvas.update()
-          track = 0
-       print (track)
 
   def select(self,which):
     self.selected = int(which)
@@ -170,45 +150,76 @@ class Window:
     self.root.geometry("{}x{}+1+1".format((maxx+2)*SIZE, (maxy+2)*SIZE))
     for x in ext['row']:
         for y in ext['column']:
-            self.items.append( self.canvas.create_rectangle( * fieldRect(x,y), fill=FIELD_FILL) )
+            self.items.append( self.canvas.create_rectangle( * fieldRect(y,x), fill=FIELD_FILL) )
 
     self.img = Image.open("smallrobo.gif")
     self.robo = ImageTk.PhotoImage(self.img)
     for a in ext['obstacleAt']:#static
       x=a.split(',')
-      self.items.append( self.canvas.create_rectangle( * fieldRect(x[0],x[1]), fill=WALL_FILL) )
+      self.items.append( self.canvas.create_rectangle( * fieldRect(x[1],x[0]), fill=WALL_FILL) )
     counter=0
     tmp=sorted(list(ext['robotAt']), key=lambda x: int(x[-1]))
     tmp1=sorted(list(ext['target']), key=lambda x: int(x[-1]))
     timelim=int(tmp[-1].split(',')[-1])
     for i in range(0,timelim+1):
         x=tmp[i].split(',')
-        c,d = int(x[0])+1, int(x[1])+1
+        c,d = int(x[1])+1, int(x[0])+1
 
         if(i!=timelim):
             x1=tmp1[i].split(',')
-            c1,d1 = int(x1[0])+1, int(x1[1])+1
+            c1,d1 = int(x1[1])+1, int(x1[0])+1
+            di=x1[-2]
         else:
             x1=tmp1[i-1].split(',')
-            c1,d1 = int(x1[2])+1, int(x1[3])+1
-
-
+            c1,d1 = int(x1[3])+1, int(x1[2])+1
         counter+=1
         if counter==1:
             self.rob=self.canvas.create_image(c*SIZE, d*SIZE,image=self.robo)
             self.items.append(self.rob)
-            self.tar=self.canvas.create_oval(*fieldRect(x1[0],x1[1],10), fill=TARGET_FILL)
+            self.tar=self.canvas.create_oval(*fieldRect(x1[1],x1[0],10), fill=TARGET_FILL)
+            a=(int(x1[1])+1)*SIZE
+            b=(int(x1[0])+1)*SIZE+2
+            a1=(int(x1[1])+1)*SIZE+4
+            b1=(int(x1[0])+1)*SIZE
+            a2=(int(x1[1])+1)*SIZE-4
+            b2=(int(x1[0])+1)*SIZE
+
+            self.arrow=self.canvas.create_polygon(a,b,a1,b1,a2,b2,fill='black')
+            if di=='west':
+                self.canvas.coords(self.arrow,a,b,a1-4,b1-2,a2,b2)
+            elif di=='east':
+                self.canvas.coords(self.arrow,a,b,a1,b1,a2+4,b2-2)
+            elif di=='north':
+                self.canvas.coords(self.arrow,a,b-4,a1,b1,a2,b2)
+
             self.items.append(self.tar)
             self.canvas.update()
         else:
             time.sleep(1)
             self.canvas.move(self.rob, (c-lastx)*SIZE, (d-lasty)*SIZE)
             self.canvas.move(self.tar, (c1-lastx1)*SIZE, (d1-lasty1)*SIZE)
+            self.canvas.move(self.arrow,(c1-lastx1)*SIZE, (d1-lasty1)*SIZE)
+            time.sleep(1)
+            a=c1*SIZE
+            b=d1*SIZE+2
+            a1=c1*SIZE+4
+            b1=d1*SIZE
+            a2=c1*SIZE-4
+            b2=d1*SIZE
+            if di=='west':
+                self.canvas.coords(self.arrow,a,b,a1-4,b1-2,a2,b2)
+            elif di=='east':
+                self.canvas.coords(self.arrow,a,b,a1,b1,a2+4,b2-2)
+            elif di=='north':
+                self.canvas.coords(self.arrow,a,b-4,a1,b1,a2,b2)
+            elif di=='south':
+                self.canvas.coords(self.arrow,a,b,a1,b1,a2,b2)
             self.canvas.update()
         lastx=c
         lasty=d
         lastx1=c1
         lasty1=d1
+
 
 def display_tk(answersets):
   w = Window(answersets)
