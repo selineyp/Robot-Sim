@@ -14,6 +14,11 @@ import traceback
 import time
 from PIL import Image, ImageTk
 
+maxT=None
+if len(sys.argv)>3:
+  maxT=sys.argv[-1]
+else:
+  maxT=2
 
 def extractExtensions(answerset):
   #print(repr(answer_set))
@@ -154,24 +159,44 @@ class Window:
 
     self.img = Image.open("smallrobo.gif")
     self.robo = ImageTk.PhotoImage(self.img)
-    for a in ext['obstacleAt']:#static
-      x=a.split(',')
-      self.items.append( self.canvas.create_rectangle( * fieldRect(x[1],x[0]), fill=WALL_FILL) )
+
     counter=0
+    obscounter=0
     tmp=sorted(list(ext['robotAt']), key=lambda x: int(x[-1]))
     tmp1=sorted(list(ext['target']), key=lambda x: int(x[-1]))
+    tmp2=sorted(list(ext['obstacleAt']), key=lambda x: int(x[-1]))
     timelim=int(tmp[-1].split(',')[-1])
-    for i in range(0,timelim+1):
-        x=tmp[i].split(',')
-        c,d = int(x[1])+1, int(x[0])+1
+    timelim1=int(tmp1[-1].split(',')[-1])
+    timelim2=int(tmp2[-1].split(',')[-1])
+    for i in range(0,int(maxT)+1):
+        #robot move
+        if(i <= timelim):
+            x=tmp[i].split(',')
+            c,d = int(x[1])+1, int(x[0])+1
 
-        if(i!=timelim):
+        #target move
+        if(i <= timelim1):
             x1=tmp1[i].split(',')
             c1,d1 = int(x1[1])+1, int(x1[0])+1
             di=x1[-2]
+
         else:
-            x1=tmp1[i-1].split(',')
+            x1=tmp1[-1].split(',')
             c1,d1 = int(x1[3])+1, int(x1[2])+1
+
+        obstacles=[]
+        #obstacle move
+        x=tmp2[obscounter].split(',')
+        while int(x[-1])==i:
+            obs=self.canvas.create_rectangle( * fieldRect(x[1],x[0]),fill=WALL_FILL)
+            obstacles.append(obs)
+            self.items.append(obs)
+            obscounter+=1
+            if obscounter <= timelim2:
+                x=tmp2[obscounter].split(',')
+            else:
+                break
+
         counter+=1
         if counter==1:
             self.rob=self.canvas.create_image(c*SIZE, d*SIZE,image=self.robo)
@@ -215,6 +240,11 @@ class Window:
             elif di=='south':
                 self.canvas.coords(self.arrow,a,b,a1,b1,a2,b2)
             self.canvas.update()
+
+        if i < timelim2-obscounter:
+            for x in obstacles:
+                self.canvas.delete(x)
+
         lastx=c
         lasty=d
         lastx1=c1
@@ -226,7 +256,7 @@ def display_tk(answersets):
 
 MAXANS=100
 clingo = subprocess.Popen(
-  "clingo --outf=2 {}".format(' '.join(sys.argv[1:])),
+  "clingo --outf=2 -c time={} {}".format(maxT,' '.join(sys.argv[1:])),
   shell=True, stdout=subprocess.PIPE, stderr=sys.stderr)
 clingoout, clingoerr = clingo.communicate()
 del clingo
